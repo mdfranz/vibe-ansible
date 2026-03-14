@@ -17,6 +17,7 @@
           - curl
           - wget
           - git
+          - mosh
         state: present
       tags: [standard_tools]
 

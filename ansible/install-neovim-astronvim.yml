@@ -1,7 +1,6 @@
 ---
 - name: Install Neovim and AstroNvim
-  hosts: localhost
-  connection: local
+  hosts: "{{ target_hosts | default('localhost') }}"
   gather_facts: no
   vars:
     nvim_tarball_url: "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz"

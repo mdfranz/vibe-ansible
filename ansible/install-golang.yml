@@ -1,7 +1,6 @@
 ---
 - name: Install latest Go (Golang)
-  hosts: localhost
-  connection: local
+  hosts: "{{ target_hosts | default('localhost') }}"
   gather_facts: yes
   vars:
     home_dir: "{{ lookup('env', 'HOME') }}"

@@ -1,35 +1,36 @@
 ---
 - name: Install Node.js LTS via nvm
-  hosts: localhost
-  connection: local
+  hosts: "{{ target_hosts | default('localhost') }}"
+  gather_facts: no
   vars:
     nvm_version: "0.40.2"
-    nvm_dir: "{{ ansible_facts.env.HOME }}/.nvm"
+    nvm_dir: "{{ lookup('env', 'HOME') }}/.nvm"
 
   tasks:
     - name: Clean up old nvm config from shell profiles
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: "{{ item }}"
         regexp: "^export NVM_DIR|^\\[ -s.*nvm\\.sh"
         state: absent
       loop:
-        - "{{ ansible_facts.env.HOME }}/.bashrc"
-        - "{{ ansible_facts.env.HOME }}/.zshrc"
+        - "{{ lookup('env', 'HOME') }}/.bashrc"
+        - "{{ lookup('env', 'HOME') }}/.zshrc"
       failed_when: false
 
     - name: Check if nvm is already installed
-      stat:
+      ansible.builtin.stat:
         path: "{{ nvm_dir }}/nvm.sh"
       register: nvm_stat
 
     - name: Create nvm directory
-      file:
+      ansible.builtin.file:
         path: "{{ nvm_dir }}"
         state: directory
+        mode: '0755'
       when: not nvm_stat.stat.exists
 
     - name: Install nvm
-      shell: >
+      ansible.builtin.shell: >
         export NVM_DIR="{{ nvm_dir }}";
         curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v{{ nvm_version }}/install.sh | bash -e
       args:
@@ -38,7 +39,7 @@
       register: nvm_install
 
     - name: Install Node.js LTS
-      shell: |
+      ansible.builtin.shell: |
         source {{ nvm_dir }}/nvm.sh
         nvm install --lts
         nvm alias default lts/*
@@ -48,7 +49,7 @@
       changed_when: "'already installed' not in nvm_output.stdout"
 
     - name: Get installed Node.js version
-      shell: |
+      ansible.builtin.shell: |
         source {{ nvm_dir }}/nvm.sh
         node --version
       args:
@@ -57,5 +58,5 @@
       changed_when: false
 
     - name: Print Node.js version
-      debug:
+      ansible.builtin.debug:
         msg: "Node.js {{ node_ver.stdout }} installed at {{ nvm_dir }}"

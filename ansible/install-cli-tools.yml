@@ -1,8 +1,8 @@
 ---
 - name: Install useful command line tools
-  hosts: localhost
-  connection: local
+  hosts: "{{ target_hosts | default('localhost') }}"
   become: yes
+  gather_facts: no
 
   tasks:
     - name: Ensure standard CLI tools are installed

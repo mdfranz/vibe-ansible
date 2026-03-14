@@ -4,6 +4,8 @@ Chromebook setup and management via Ansible, bootstrapped with UV for reproducib
 
 I installed Claude first to generate this, then switched over to Gemini.
 
+Tested on latest Debian ChromeBook and Ubuntu 24.04.4
+
 ## Overview
 
 This project provides a bootstrap script for setting up a Chromebook Crostini (Debian/Ubuntu) environment with:

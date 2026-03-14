@@ -4,7 +4,7 @@ set -euo pipefail
 # vibe.sh - Control script for vibe-ansible components
 # Usage: ./vibe.sh [install|uninstall] [component|all]
 
-COMPONENTS=("nodejs" "golang" "cli-tools" "npm-packages" "neovim-astronvim")
+COMPONENTS=("nodejs" "golang" "cli-tools" "npm-packages" "python-tools" "neovim-astronvim")
 
 show_help() {
     echo "Usage: $0 [action] [component]"

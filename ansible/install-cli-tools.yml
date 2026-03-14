@@ -6,7 +6,7 @@
 
   tasks:
     - name: Ensure standard CLI tools are installed
-      package:
+      ansible.builtin.package:
         name:
           - htop
           - tmux
@@ -18,35 +18,38 @@
           - wget
           - git
         state: present
+      tags: [standard_tools]
 
-    - name: Try installing bottom via package manager
-      package:
-        name: bottom
-        state: present
-      ignore_errors: true
-      register: bottom_install
+    - name: Install bottom (btm)
+      block:
+        - name: Try installing bottom via package manager
+          ansible.builtin.package:
+            name: bottom
+            state: present
+      rescue:
+        - name: Fallback to manual binary installation for bottom
+          block:
+            - name: Get machine architecture
+              ansible.builtin.command: uname -m
+              register: arch_out
+              changed_when: false
 
-    - name: Get machine architecture
-      command: uname -m
-      register: arch_out
-      changed_when: false
-      when: bottom_install.failed
+            - name: Set bottom architecture variable for x86_64
+              ansible.builtin.set_fact:
+                btm_arch: "x86_64-unknown-linux-gnu"
+              when: arch_out.stdout == 'x86_64'
 
-    - name: Set bottom architecture variable for x86_64
-      set_fact:
-        btm_arch: "x86_64-unknown-linux-gnu"
-      when: bottom_install.failed and arch_out.stdout == 'x86_64'
+            - name: Set bottom architecture variable for aarch64
+              ansible.builtin.set_fact:
+                btm_arch: "aarch64-unknown-linux-gnu"
+              when: arch_out.stdout in ['aarch64', 'arm64']
 
-    - name: Set bottom architecture variable for aarch64
-      set_fact:
-        btm_arch: "aarch64-unknown-linux-gnu"
-      when: bottom_install.failed and arch_out.stdout in ['aarch64', 'arm64']
-
-    - name: Download and install bottom binary if package install fails
-      unarchive:
-        src: "https://github.com/ClementTsang/bottom/releases/latest/download/bottom_{{ btm_arch }}.tar.gz"
-        dest: /usr/local/bin
-        remote_src: yes
-        extra_opts:
-          - btm
-      when: bottom_install.failed and btm_arch is defined
+            - name: Download and install bottom binary
+              ansible.builtin.unarchive:
+                src: "https://github.com/ClementTsang/bottom/releases/latest/download/bottom_{{ btm_arch }}.tar.gz"
+                dest: /usr/local/bin
+                remote_src: yes
+                extra_opts:
+                  - btm
+              when: btm_arch is defined
+      tags: [bottom, btm]

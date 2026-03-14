@@ -1,0 +1,11 @@
+[project]
+name = "vibe-ansible"
+version = "0.1.0"
+description = "Chromebook setup and management via Ansible, bootstrapped with UV"
+requires-python = ">=3.12"
+dependencies = [
+    "ansible>=10",
+]
+
+[tool.uv]
+dev-dependencies = []

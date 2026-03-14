@@ -1,0 +1,61 @@
+---
+- name: Install Node.js LTS via nvm
+  hosts: localhost
+  connection: local
+  vars:
+    nvm_version: "0.40.2"
+    nvm_dir: "{{ ansible_env.HOME }}/.nvm"
+
+  tasks:
+    - name: Clean up old nvm config from shell profiles
+      lineinfile:
+        path: "{{ item }}"
+        regexp: "^export NVM_DIR|^\\[ -s.*nvm\\.sh"
+        state: absent
+      loop:
+        - "{{ ansible_env.HOME }}/.bashrc"
+        - "{{ ansible_env.HOME }}/.zshrc"
+      failed_when: false
+
+    - name: Check if nvm is already installed
+      stat:
+        path: "{{ nvm_dir }}/nvm.sh"
+      register: nvm_stat
+
+    - name: Create nvm directory
+      file:
+        path: "{{ nvm_dir }}"
+        state: directory
+      when: not nvm_stat.stat.exists
+
+    - name: Install nvm
+      shell: >
+        export NVM_DIR="{{ nvm_dir }}";
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v{{ nvm_version }}/install.sh | bash -e
+      args:
+        executable: /bin/bash
+      when: not nvm_stat.stat.exists
+      register: nvm_install
+
+    - name: Install Node.js LTS
+      shell: |
+        source {{ nvm_dir }}/nvm.sh
+        nvm install --lts
+        nvm alias default lts/*
+      args:
+        executable: /bin/bash
+      register: nvm_output
+      changed_when: "'already installed' not in nvm_output.stdout"
+
+    - name: Get installed Node.js version
+      shell: |
+        source {{ nvm_dir }}/nvm.sh
+        node --version
+      args:
+        executable: /bin/bash
+      register: node_ver
+      changed_when: false
+
+    - name: Print Node.js version
+      debug:
+        msg: "Node.js {{ node_ver.stdout }} installed at {{ nvm_dir }}"

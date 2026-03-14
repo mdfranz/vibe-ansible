@@ -53,6 +53,7 @@ vibe-ansible/
     ├── install-nodejs.yml          # Node.js (via home directory extraction)
     ├── install-npm-packages.yml    # Common global npm packages
     ├── install-neovim-astronvim.yml # Neovim binary and AstroNvim setup
+    ├── install-golang.yml          # Latest Go (Golang) binary setup
     └── uninstall-nodejs.yml        # Clean up Node.js installation
 ```
 
@@ -63,6 +64,7 @@ Run these playbooks using `uv run ansible-playbook`:
 - **CLI Tools**: `uv run ansible-playbook ansible/install-cli-tools.yml`
 - **Node.js**: `uv run ansible-playbook ansible/install-nodejs.yml`
 - **Neovim & AstroNvim**: `uv run ansible-playbook ansible/install-neovim-astronvim.yml`
+- **Go (Golang)**: `uv run ansible-playbook ansible/install-golang.yml`
 
 ## Why UV?
 

@@ -1,0 +1,67 @@
+---
+- name: Install latest Go (Golang)
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  vars:
+    home_dir: "{{ lookup('env', 'HOME') }}"
+    local_dir: "{{ home_dir }}/.local"
+    local_bin: "{{ home_dir }}/.local/bin"
+    go_install_dir: "{{ local_dir }}/go"
+    go_version_url: "https://go.dev/VERSION?m=text"
+
+  tasks:
+    - name: Ensure ~/.local/bin exists
+      ansible.builtin.file:
+        path: "{{ local_bin }}"
+        state: directory
+        mode: '0755'
+
+    - name: Get latest Go version
+      ansible.builtin.uri:
+        url: "{{ go_version_url }}"
+        return_content: yes
+      register: go_version_out
+
+    - name: Set go_version fact
+      ansible.builtin.set_fact:
+        go_version: "{{ go_version_out.content.splitlines() | first | trim }}"
+
+    - name: Determine Go architecture
+      ansible.builtin.set_fact:
+        go_arch: "{{ 'amd64' if ansible_facts['architecture'] == 'x86_64' else 'arm64' if ansible_facts['architecture'] in ['aarch64', 'arm64'] else '386' }}"
+
+    - name: Set Go download URL
+      ansible.builtin.set_fact:
+        go_download_url: "https://go.dev/dl/{{ go_version }}.linux-{{ go_arch }}.tar.gz"
+
+    - name: Check current Go version
+      ansible.builtin.command:
+        cmd: "{{ go_install_dir }}/bin/go version"
+      register: current_go_version_out
+      failed_when: false
+      changed_when: false
+
+    - name: Remove old Go installation if version differs
+      ansible.builtin.file:
+        path: "{{ go_install_dir }}"
+        state: absent
+      when: 
+        - current_go_version_out.rc == 0
+        - go_version not in current_go_version_out.stdout
+
+    - name: Download and extract Go tarball
+      ansible.builtin.unarchive:
+        src: "{{ go_download_url }}"
+        dest: "{{ local_dir }}"
+        remote_src: yes
+        creates: "{{ go_install_dir }}/bin/go"
+
+    - name: Create symlinks for Go binaries in ~/.local/bin
+      ansible.builtin.file:
+        src: "{{ go_install_dir }}/bin/{{ item }}"
+        dest: "{{ local_bin }}/{{ item }}"
+        state: link
+      loop:
+        - go
+        - gofmt

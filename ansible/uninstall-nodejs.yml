@@ -1,0 +1,27 @@
+---
+- name: Uninstall Node.js LTS via nvm
+  hosts: localhost
+  connection: local
+  vars:
+    nvm_dir: "{{ ansible_env.HOME }}/.nvm"
+
+  tasks:
+    - name: Remove nvm directory
+      file:
+        path: "{{ nvm_dir }}"
+        state: absent
+      register: nvm_removed
+
+    - name: Clean up nvm config from shell profiles
+      lineinfile:
+        path: "{{ item }}"
+        regexp: "^export NVM_DIR|^\\[ -s.*nvm\\.sh|^\\[ -s.*nvm bash_completion"
+        state: absent
+      loop:
+        - "{{ ansible_env.HOME }}/.bashrc"
+        - "{{ ansible_env.HOME }}/.zshrc"
+      failed_when: false
+
+    - name: Print uninstall status
+      debug:
+        msg: "Node.js and nvm removed from {{ nvm_dir }}"

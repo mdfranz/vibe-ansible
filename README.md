@@ -47,6 +47,10 @@ The easiest way to manage components is using the `vibe.sh` script:
 
 # Uninstall everything (in reverse order)
 ./vibe.sh uninstall all
+
+# Forward ansible-playbook args through vibe.sh
+./vibe.sh uninstall npm-packages --tags check,report
+./vibe.sh install python-tools -e 'python_packages=["ruff"]'
 ```
 
 ### Run Ansible commands manually
@@ -59,6 +63,10 @@ uv run ansible localhost -m ping
 
 # Run a specific playbook
 uv run ansible-playbook ansible/install-golang.yml
+
+# Use the unified package playbooks directly
+uv run ansible-playbook ansible/python-tools.yml -e python_state=absent --tags apply
+uv run ansible-playbook ansible/npm-packages.yml -e 'npm_packages=["@openai/codex"]'
 ```
 
 ## Project Structure
@@ -74,8 +82,12 @@ vibe-ansible/
     ├── uninstall-cli-tools.yml       # Remove CLI tools
     ├── install-nodejs.yml            # Node.js (via nvm)
     ├── uninstall-nodejs.yml          # Remove Node.js and nvm
+    ├── npm-packages.yml              # Unified npm package manager (present/absent)
     ├── install-npm-packages.yml      # Common global npm packages
     ├── uninstall-npm-packages.yml    # Remove global npm packages
+    ├── python-tools.yml              # Unified Python tool manager (present/absent)
+    ├── install-python-tools.yml      # Install Python CLI tools (wrapper)
+    ├── uninstall-python-tools.yml    # Uninstall Python CLI tools (wrapper)
     ├── install-neovim-astronvim.yml   # Neovim binary and AstroNvim setup
     ├── uninstall-neovim-astronvim.yml # Remove Neovim and AstroNvim config
     ├── install-golang.yml            # Latest Go (Golang) binary setup
@@ -87,6 +99,7 @@ vibe-ansible/
 - **cli-tools**: Standard utilities (htop, tmux, ripgrep, fzf, jq, tree, curl, wget, git, mosh, bottom)
 - **nodejs**: Node.js LTS via nvm
 - **npm-packages**: Global packages (@openai/codex, @google/gemini-cli)
+- **python-tools**: Python CLI tools via uv (ruff, pre-commit, llm)
 - **neovim-astronvim**: Neovim binary + AstroNvim configuration
 - **golang**: Latest Go (Golang) installation
 

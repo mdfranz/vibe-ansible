@@ -1,0 +1,4 @@
+---
+- import_playbook: python-tools.yml
+  vars:
+    python_state: absent

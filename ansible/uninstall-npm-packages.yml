@@ -1,33 +1,4 @@
 ---
-- name: Uninstall NPM packages (codex and gemini-cli)
-  hosts: "{{ target_hosts | default('localhost') }}"
-  gather_facts: no
+- import_playbook: npm-packages.yml
   vars:
-    npm_packages:
-      - "@openai/codex"
-      - "@google/gemini-cli"
-
-  tasks:
-    - name: Check if npm is available
-      ansible.builtin.command: npm --version
-      register: npm_check
-      changed_when: false
-      failed_when: false
-
-    - name: Uninstall global NPM packages
-      community.general.npm:
-        name: "{{ item }}"
-        global: true
-        state: absent
-      loop: "{{ npm_packages }}"
-      when: npm_check.rc == 0
-
-    - name: Print uninstall status
-      ansible.builtin.debug:
-        msg: "Global NPM packages removed (if npm was present)."
-      when: npm_check.rc == 0
-
-    - name: Print skip message
-      ansible.builtin.debug:
-        msg: "Skipped NPM uninstall as npm command was not found."
-      when: npm_check.rc != 0
+    npm_state: absent

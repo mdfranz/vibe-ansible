@@ -7,7 +7,7 @@ set -euo pipefail
 COMPONENTS=("nodejs" "golang" "cli-tools" "npm-packages" "python-tools" "neovim-astronvim")
 
 show_help() {
-    echo "Usage: $0 [action] [component]"
+    echo "Usage: $0 [action] [component] [ansible-playbook args...]"
     echo ""
     echo "Actions:"
     echo "  install      Install the specified component(s)"
@@ -19,9 +19,11 @@ show_help() {
     done
     echo "  all          Run action for ALL components"
     echo ""
-    echo "Example:"
+    echo "Examples:"
     echo "  $0 install golang"
     echo "  $0 uninstall all"
+    echo "  $0 uninstall npm-packages --tags check,report"
+    echo "  $0 install python-tools -e 'python_packages=[\"ruff\"]'"
 }
 
 if [ $# -lt 2 ]; then
@@ -31,6 +33,7 @@ fi
 
 ACTION=$1
 TARGET=$2
+EXTRA_ARGS=("${@:3}")
 
 # Validate action
 if [[ ! "$ACTION" =~ ^(install|uninstall)$ ]]; then
@@ -45,7 +48,7 @@ run_playbook() {
     
     if [ -f "$playbook" ]; then
         echo "===> Running ${act} for ${comp}..."
-        uv run ansible-playbook "$playbook"
+        uv run ansible-playbook "$playbook" "${EXTRA_ARGS[@]}"
     else
         echo "Warning: Playbook $playbook not found, skipping."
     fi

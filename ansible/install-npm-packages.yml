@@ -1,27 +1,4 @@
 ---
-- name: Install NPM packages (codex and gemini-cli)
-  hosts: "{{ target_hosts | default('localhost') }}"
-  gather_facts: no
+- import_playbook: npm-packages.yml
   vars:
-    npm_packages:
-      - "@openai/codex"
-      - "@google/gemini-cli"
-
-  tasks:
-    - name: Check if npm is available
-      ansible.builtin.command: npm --version
-      register: npm_check
-      changed_when: false
-      failed_when: npm_check.rc != 0
-
-    - name: Install global NPM packages
-      community.general.npm:
-        name: "{{ item }}"
-        global: true
-        state: latest
-      loop: "{{ npm_packages }}"
-      register: npm_install
-
-    - name: Print install status
-      ansible.builtin.debug:
-        msg: "Installed global NPM packages: {{ npm_packages | join(', ') }}"
+    npm_state: present

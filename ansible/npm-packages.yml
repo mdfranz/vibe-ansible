@@ -1,0 +1,69 @@
+---
+- name: Manage global NPM packages
+  hosts: "{{ target_hosts | default('localhost') }}"
+  gather_facts: no
+  vars:
+    npm_state: present
+    npm_packages:
+      - "@openai/codex"
+      - "@google/gemini-cli"
+
+  tasks:
+    - name: Validate npm_state
+      ansible.builtin.assert:
+        that:
+          - npm_state in ['present', 'absent']
+        fail_msg: "npm_state must be 'present' or 'absent'."
+      tags: [check]
+
+    - name: Check if npm is available for install
+      ansible.builtin.command: npm --version
+      register: npm_check_install
+      changed_when: false
+      failed_when: npm_check_install.rc != 0
+      when: npm_state == 'present'
+      tags: [check]
+
+    - name: Check if npm is available for uninstall
+      ansible.builtin.command: npm --version
+      register: npm_check_uninstall
+      changed_when: false
+      failed_when: false
+      when: npm_state == 'absent'
+      tags: [check]
+
+    - name: Install global NPM packages
+      community.general.npm:
+        name: "{{ item }}"
+        global: true
+        state: latest
+      loop: "{{ npm_packages }}"
+      when: npm_state == 'present'
+      tags: [apply]
+
+    - name: Uninstall global NPM packages
+      community.general.npm:
+        name: "{{ item }}"
+        global: true
+        state: absent
+      loop: "{{ npm_packages }}"
+      when:
+        - npm_state == 'absent'
+        - npm_check_uninstall.rc == 0
+      tags: [apply]
+
+    - name: Print status
+      ansible.builtin.debug:
+        msg: >-
+          {{ 'Installed' if npm_state == 'present' else 'Uninstalled' }}
+          global NPM packages: {{ npm_packages | join(', ') }}
+      when: npm_state == 'present' or (npm_state == 'absent' and npm_check_uninstall.rc == 0)
+      tags: [report]
+
+    - name: Print uninstall skip message
+      ansible.builtin.debug:
+        msg: "Skipped NPM uninstall as npm command was not found."
+      when:
+        - npm_state == 'absent'
+        - npm_check_uninstall.rc != 0
+      tags: [report]

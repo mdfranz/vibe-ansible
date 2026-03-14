@@ -1,0 +1,72 @@
+---
+- name: Manage Python CLI tools via uv
+  hosts: "{{ target_hosts | default('localhost') }}"
+  gather_facts: no
+  vars:
+    python_state: present
+    python_packages:
+      - ruff
+      - llm
+    llm_plugins:
+      - llm-anthropic
+      - llm-ollama
+      - llm-gemini
+    llm_env_vars:
+      - ANTHROPIC_API_KEY
+      - OPENAI_API_KEY
+      - GEMINI_API_KEY
+      - OLLAMA_HOST
+
+  tasks:
+    - name: Validate python_state
+      ansible.builtin.assert:
+        that:
+          - python_state in ['present', 'absent']
+        fail_msg: "python_state must be 'present' or 'absent'."
+      tags: [check]
+
+    - name: Check if uv is available
+      ansible.builtin.command: uv --version
+      register: uv_check
+      changed_when: false
+      failed_when: uv_check.rc != 0
+      tags: [check]
+
+    - name: Warn if LLM API keys are missing
+      ansible.builtin.debug:
+        msg: "Warning: Environment variable {{ item }} is not set. Some llm features may not work."
+      loop: "{{ llm_env_vars }}"
+      when:
+        - python_state == 'present'
+        - "'llm' in python_packages"
+        - lookup('ansible.builtin.env', item) == ''
+      tags: [check]
+
+    - name: Install Python tools
+      ansible.builtin.command:
+        cmd: "uv tool install --upgrade {{ item }}"
+      loop: "{{ python_packages }}"
+      when: python_state == 'present'
+      tags: [apply]
+
+    - name: Install llm plugins
+      ansible.builtin.command:
+        cmd: "~/.local/bin/llm install {{ item }}"
+      loop: "{{ llm_plugins }}"
+      when: python_state == 'present' and 'llm' in python_packages
+      tags: [apply]
+
+    - name: Uninstall Python tools
+      ansible.builtin.command:
+        cmd: "uv tool uninstall {{ item }}"
+        removes: "~/.local/bin/{{ item }}"
+      loop: "{{ python_packages }}"
+      when: python_state == 'absent'
+      tags: [apply]
+
+    - name: Print status
+      ansible.builtin.debug:
+        msg: >-
+          {{ 'Installed' if python_state == 'present' else 'Uninstalled' }}
+          Python CLI tools: {{ python_packages | join(', ') }}
+      tags: [report]

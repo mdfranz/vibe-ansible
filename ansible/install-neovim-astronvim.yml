@@ -1,0 +1,74 @@
+---
+- name: Install Neovim and AstroNvim
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  vars:
+    nvim_tarball_url: "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz"
+    home_dir: "{{ lookup('env', 'HOME') }}"
+    local_dir: "{{ home_dir }}/.local"
+    local_bin: "{{ home_dir }}/.local/bin"
+    nvim_extract_dir: "{{ home_dir }}/.local"
+    nvim_bin_src: "{{ home_dir }}/.local/nvim-linux-x86_64/bin/nvim"
+    nvim_bin_dest: "{{ home_dir }}/.local/bin/nvim"
+    config_dir: "{{ home_dir }}/.config/nvim"
+    share_dir: "{{ home_dir }}/.local/share/nvim"
+    state_dir: "{{ home_dir }}/.local/state/nvim"
+    cache_dir: "{{ home_dir }}/.cache/nvim"
+    astronvim_repo: "https://github.com/AstroNvim/template"
+
+  tasks:
+    - name: Ensure ~/.local and ~/.local/bin exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ local_dir }}"
+        - "{{ local_bin }}"
+
+    - name: Download and extract Neovim tarball
+      ansible.builtin.unarchive:
+        src: "{{ nvim_tarball_url }}"
+        dest: "{{ nvim_extract_dir }}"
+        remote_src: yes
+        creates: "{{ nvim_bin_src }}"
+
+    - name: Create symlink for nvim in ~/.local/bin
+      ansible.builtin.file:
+        src: "{{ nvim_bin_src }}"
+        dest: "{{ nvim_bin_dest }}"
+        state: link
+
+    - name: Check if AstroNvim is already installed
+      ansible.builtin.stat:
+        path: "{{ config_dir }}/lua/astronvim"
+      register: astronvim_check
+      ignore_errors: true
+
+    - name: Backup existing Neovim configuration and data if not AstroNvim
+      ansible.builtin.command:
+        cmd: "mv {{ item }} {{ item }}.bak"
+      args:
+        removes: "{{ item }}"
+      loop:
+        - "{{ config_dir }}"
+        - "{{ share_dir }}"
+        - "{{ state_dir }}"
+        - "{{ cache_dir }}"
+      when: not astronvim_check.stat.exists | default(False)
+      ignore_errors: true
+
+    - name: Clone AstroNvim template
+      ansible.builtin.git:
+        repo: "{{ astronvim_repo }}"
+        dest: "{{ config_dir }}"
+        depth: 1
+        update: no
+      when: not astronvim_check.stat.exists | default(False)
+
+    - name: Remove AstroNvim .git directory
+      ansible.builtin.file:
+        path: "{{ config_dir }}/.git"
+        state: absent
+      when: not astronvim_check.stat.exists | default(False)

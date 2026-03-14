@@ -2,6 +2,8 @@
 
 Chromebook setup and management via Ansible, bootstrapped with UV for reproducible Python tooling.
 
+I installed Claude first to generate this, then switched over to Gemini.
+
 ## Overview
 
 This project provides a bootstrap script for setting up a Chromebook Crostini (Debian/Ubuntu) environment with:
@@ -13,14 +15,7 @@ All tooling is managed through UV, eliminating system-wide Python dependencies a
 
 ## Quick Start
 
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/yourusername/vibe-ansible.git
-cd vibe-ansible
-```
-
-### 2. Run the bootstrap script
+### Run the bootstrap script
 
 ```bash
 bash bootstrap.sh
@@ -31,7 +26,7 @@ The script is idempotent — it's safe to run multiple times. It will:
 - Install Python via UV
 - Sync project dependencies and create a virtual environment
 
-### 3. Run Ansible commands
+### Run Ansible commands
 
 Once bootstrap completes, use UV to run Ansible:
 
@@ -53,9 +48,21 @@ vibe-ansible/
 ├── bootstrap.sh          # Bootstrap script (install UV, Python, Ansible)
 ├── pyproject.toml        # UV project manifest (dependencies)
 ├── README.md             # This file
-└── ansible/              # Ansible playbooks and roles (future)
-    └── .gitkeep
+└── ansible/              # Ansible playbooks
+    ├── install-cli-tools.yml       # Common tools (htop, tmux, ripgrep, etc.)
+    ├── install-nodejs.yml          # Node.js (via home directory extraction)
+    ├── install-npm-packages.yml    # Common global npm packages
+    ├── install-neovim-astronvim.yml # Neovim binary and AstroNvim setup
+    └── uninstall-nodejs.yml        # Clean up Node.js installation
 ```
+
+## Available Playbooks
+
+Run these playbooks using `uv run ansible-playbook`:
+
+- **CLI Tools**: `uv run ansible-playbook ansible/install-cli-tools.yml`
+- **Node.js**: `uv run ansible-playbook ansible/install-nodejs.yml`
+- **Neovim & AstroNvim**: `uv run ansible-playbook ansible/install-neovim-astronvim.yml`
 
 ## Why UV?
 

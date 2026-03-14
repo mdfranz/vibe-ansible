@@ -1,0 +1,26 @@
+---
+- name: Uninstall Go (Golang)
+  hosts: "{{ target_hosts | default('localhost') }}"
+  gather_facts: no
+  vars:
+    home_dir: "{{ lookup('env', 'HOME') }}"
+    local_bin: "{{ home_dir }}/.local/bin"
+    go_install_dir: "{{ home_dir }}/.local/go"
+
+  tasks:
+    - name: Remove Go installation directory
+      ansible.builtin.file:
+        path: "{{ go_install_dir }}"
+        state: absent
+
+    - name: Remove Go symlinks from ~/.local/bin
+      ansible.builtin.file:
+        path: "{{ local_bin }}/{{ item }}"
+        state: absent
+      loop:
+        - go
+        - gofmt
+
+    - name: Print uninstall status
+      ansible.builtin.debug:
+        msg: "Go and its symlinks have been removed."

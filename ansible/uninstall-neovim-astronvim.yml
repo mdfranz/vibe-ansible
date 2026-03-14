@@ -1,0 +1,38 @@
+---
+- name: Uninstall Neovim and AstroNvim
+  hosts: "{{ target_hosts | default('localhost') }}"
+  gather_facts: no
+  vars:
+    home_dir: "{{ lookup('env', 'HOME') }}"
+    local_bin: "{{ home_dir }}/.local/bin"
+    nvim_install_dir: "{{ home_dir }}/.local/nvim-linux-x86_64"
+    nvim_bin_dest: "{{ home_dir }}/.local/bin/nvim"
+    config_dir: "{{ home_dir }}/.config/nvim"
+    share_dir: "{{ home_dir }}/.local/share/nvim"
+    state_dir: "{{ home_dir }}/.local/state/nvim"
+    cache_dir: "{{ home_dir }}/.cache/nvim"
+
+  tasks:
+    - name: Remove Neovim installation directory
+      ansible.builtin.file:
+        path: "{{ nvim_install_dir }}"
+        state: absent
+
+    - name: Remove Neovim symlink in ~/.local/bin
+      ansible.builtin.file:
+        path: "{{ nvim_bin_dest }}"
+        state: absent
+
+    - name: Remove Neovim configuration and data directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ config_dir }}"
+        - "{{ share_dir }}"
+        - "{{ state_dir }}"
+        - "{{ cache_dir }}"
+
+    - name: Print uninstall status
+      ansible.builtin.debug:
+        msg: "Neovim and AstroNvim configuration have been removed. Backups (if any) were not touched."

@@ -28,19 +28,37 @@ The script is idempotent — it's safe to run multiple times. It will:
 - Install Python via UV
 - Sync project dependencies and create a virtual environment
 
-### Run Ansible commands
+### Use the Control Script
 
-Once bootstrap completes, use UV to run Ansible:
+The easiest way to manage components is using the `vibe.sh` script:
+
+```bash
+# Show help and available components
+./vibe.sh
+
+# Install all components
+./vibe.sh install all
+
+# Install a specific component
+./vibe.sh install golang
+
+# Uninstall a specific component
+./vibe.sh uninstall neovim-astronvim
+
+# Uninstall everything (in reverse order)
+./vibe.sh uninstall all
+```
+
+### Run Ansible commands manually
+
+If you prefer to run Ansible directly via UV:
 
 ```bash
 # Test connectivity to localhost
 uv run ansible localhost -m ping
 
-# Run a playbook
-uv run ansible-playbook playbooks/setup.yml
-
-# Run ad-hoc commands
-uv run ansible <host> -m shell -a "uptime"
+# Run a specific playbook
+uv run ansible-playbook ansible/install-golang.yml
 ```
 
 ## Project Structure
@@ -48,25 +66,29 @@ uv run ansible <host> -m shell -a "uptime"
 ```
 vibe-ansible/
 ├── bootstrap.sh          # Bootstrap script (install UV, Python, Ansible)
+├── vibe.sh               # Main control script for install/uninstall
 ├── pyproject.toml        # UV project manifest (dependencies)
 ├── README.md             # This file
 └── ansible/              # Ansible playbooks
-    ├── install-cli-tools.yml       # Common tools (htop, tmux, ripgrep, etc.)
-    ├── install-nodejs.yml          # Node.js (via home directory extraction)
-    ├── install-npm-packages.yml    # Common global npm packages
-    ├── install-neovim-astronvim.yml # Neovim binary and AstroNvim setup
-    ├── install-golang.yml          # Latest Go (Golang) binary setup
-    └── uninstall-nodejs.yml        # Clean up Node.js installation
+    ├── install-cli-tools.yml         # Common tools (htop, tmux, ripgrep, etc.)
+    ├── uninstall-cli-tools.yml       # Remove CLI tools
+    ├── install-nodejs.yml            # Node.js (via nvm)
+    ├── uninstall-nodejs.yml          # Remove Node.js and nvm
+    ├── install-npm-packages.yml      # Common global npm packages
+    ├── uninstall-npm-packages.yml    # Remove global npm packages
+    ├── install-neovim-astronvim.yml   # Neovim binary and AstroNvim setup
+    ├── uninstall-neovim-astronvim.yml # Remove Neovim and AstroNvim config
+    ├── install-golang.yml            # Latest Go (Golang) binary setup
+    └── uninstall-golang.yml          # Remove Go installation
 ```
 
-## Available Playbooks
+## Available Components
 
-Run these playbooks using `uv run ansible-playbook`:
-
-- **CLI Tools**: `uv run ansible-playbook ansible/install-cli-tools.yml`
-- **Node.js**: `uv run ansible-playbook ansible/install-nodejs.yml`
-- **Neovim & AstroNvim**: `uv run ansible-playbook ansible/install-neovim-astronvim.yml`
-- **Go (Golang)**: `uv run ansible-playbook ansible/install-golang.yml`
+- **cli-tools**: Standard utilities (htop, tmux, ripgrep, fzf, jq, tree, curl, wget, git, mosh, bottom)
+- **nodejs**: Node.js LTS via nvm
+- **npm-packages**: Global packages (@openai/codex, @google/gemini-cli)
+- **neovim-astronvim**: Neovim binary + AstroNvim configuration
+- **golang**: Latest Go (Golang) installation
 
 ## Why UV?
 

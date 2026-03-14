@@ -99,7 +99,8 @@ vibe-ansible/
 - **cli-tools**: Standard utilities (htop, tmux, ripgrep, fzf, jq, tree, curl, wget, git, mosh, bottom)
 - **nodejs**: Node.js LTS via nvm
 - **npm-packages**: Global packages (@openai/codex, @google/gemini-cli)
-- **python-tools**: Python CLI tools via uv (ruff, pre-commit, llm)
+- **python-tools**: Python CLI tools via uv (ruff, pre-commit, llm). 
+  - **LLM Tool**: Automatically installs plugins (`llm-anthropic`, `llm-ollama`, `llm-gemini`) and checks for required environment variables (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `OLLAMA_HOST`).
 - **neovim-astronvim**: Neovim binary + AstroNvim configuration
 - **golang**: Latest Go (Golang) installation
 

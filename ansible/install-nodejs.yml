@@ -10,7 +10,7 @@
     - name: Clean up old nvm config from shell profiles
       ansible.builtin.lineinfile:
         path: "{{ item }}"
-        regexp: "^export NVM_DIR|^\\[ -s.*nvm\\.sh"
+        regexp: "^export NVM_DIR|^\\[ -s.*nvm"
         state: absent
       loop:
         - "{{ lookup('env', 'HOME') }}/.bashrc"
@@ -56,6 +56,26 @@
         executable: /bin/bash
       register: node_ver
       changed_when: false
+
+    - name: Add nvm initialization to .bashrc
+      ansible.builtin.lineinfile:
+        path: "{{ lookup('env', 'HOME') }}/.bashrc"
+        line: "{{ item }}"
+        state: present
+      loop:
+        - "export NVM_DIR=\"{{ nvm_dir }}\""
+        - "[ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\"  # This loads nvm"
+        - "[ -s \"$NVM_DIR/bash_completion\" ] && \\. \"$NVM_DIR/bash_completion\"  # This loads nvm bash_completion"
+
+    - name: Add nvm initialization to .zshrc
+      ansible.builtin.lineinfile:
+        path: "{{ lookup('env', 'HOME') }}/.zshrc"
+        line: "{{ item }}"
+        state: present
+      loop:
+        - "export NVM_DIR=\"{{ nvm_dir }}\""
+        - "[ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\"  # This loads nvm"
+        - "[ -s \"$NVM_DIR/bash_completion\" ] && \\. \"$NVM_DIR/bash_completion\"  # This loads nvm bash_completion"
 
     - name: Print Node.js version
       ansible.builtin.debug:

@@ -1,27 +1,39 @@
 ---
-- name: Uninstall Node.js LTS via nvm
+- name: Uninstall Node.js
   hosts: "{{ target_hosts | default('localhost') }}"
-  gather_facts: no
+  gather_facts: yes
   vars:
-    nvm_dir: "{{ lookup('env', 'HOME') }}/.nvm"
+    node_version: "24.14.0"
+    node_arch: "{{ 'linux-arm64' if ansible_facts['architecture'] == 'aarch64' else 'linux-x64' }}"
+    node_install_dir: "{{ lookup('env', 'HOME') }}/.local/lib/nodejs"
+    node_bin_dir: "{{ lookup('env', 'HOME') }}/.local/bin"
+    node_extracted_dir: "{{ node_install_dir }}/node-v{{ node_version }}-{{ node_arch }}"
 
   tasks:
-    - name: Remove nvm directory
+    - name: Remove bin symlinks
       ansible.builtin.file:
-        path: "{{ nvm_dir }}"
+        path: "{{ node_bin_dir }}/{{ item }}"
         state: absent
-      register: nvm_removed
+      loop:
+        - node
+        - npm
+        - npx
 
-    - name: Clean up nvm config from shell profiles
+    - name: Remove Node.js directory
+      ansible.builtin.file:
+        path: "{{ node_extracted_dir }}"
+        state: absent
+
+    - name: Remove PATH entry from shell profiles
       ansible.builtin.lineinfile:
         path: "{{ item }}"
-        regexp: "^export NVM_DIR|^\\[ -s.*nvm\\.sh|^\\[ -s.*nvm bash_completion"
+        regexp: '^export PATH="\$HOME/\.local/bin:\$PATH"$'
         state: absent
       loop:
         - "{{ lookup('env', 'HOME') }}/.bashrc"
         - "{{ lookup('env', 'HOME') }}/.zshrc"
       failed_when: false
 
-    - name: Print uninstall status
+    - name: Show uninstall status
       ansible.builtin.debug:
-        msg: "Node.js and nvm removed from {{ nvm_dir }}"
+        msg: "Node.js v{{ node_version }} ({{ node_arch }}) removed from {{ node_extracted_dir }}"

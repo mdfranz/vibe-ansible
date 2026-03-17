@@ -1,13 +1,18 @@
 ---
-- name: Install Node.js LTS via nvm
+- name: Install Node.js
   hosts: "{{ target_hosts | default('localhost') }}"
-  gather_facts: no
+  gather_facts: yes
   vars:
-    nvm_version: "0.40.2"
-    nvm_dir: "{{ lookup('env', 'HOME') }}/.nvm"
+    node_version: "24.14.0"
+    node_arch: "{{ 'linux-arm64' if ansible_facts['architecture'] == 'aarch64' else 'linux-x64' }}"
+    node_install_dir: "{{ lookup('env', 'HOME') }}/.local/lib/nodejs"
+    node_bin_dir: "{{ lookup('env', 'HOME') }}/.local/bin"
+    node_archive: "node-v{{ node_version }}-{{ node_arch }}.tar.xz"
+    node_url: "https://nodejs.org/dist/v{{ node_version }}/{{ node_archive }}"
+    node_extracted_dir: "{{ node_install_dir }}/node-v{{ node_version }}-{{ node_arch }}"
 
   tasks:
-    - name: Clean up old nvm config from shell profiles
+    - name: Clean up nvm config from shell profiles
       ansible.builtin.lineinfile:
         path: "{{ item }}"
         regexp: "^export NVM_DIR|^\\[ -s.*nvm"
@@ -17,66 +22,65 @@
         - "{{ lookup('env', 'HOME') }}/.zshrc"
       failed_when: false
 
-    - name: Check if nvm is already installed
+    - name: Check if Node.js {{ node_version }} is already installed
       ansible.builtin.stat:
-        path: "{{ nvm_dir }}/nvm.sh"
-      register: nvm_stat
+        path: "{{ node_extracted_dir }}"
+      register: node_stat
 
-    - name: Create nvm directory
+    - name: Create install and bin directories
       ansible.builtin.file:
-        path: "{{ nvm_dir }}"
+        path: "{{ item }}"
         state: directory
         mode: '0755'
-      when: not nvm_stat.stat.exists
+      loop:
+        - "{{ node_install_dir }}"
+        - "{{ node_bin_dir }}"
+      when: not node_stat.stat.exists
 
-    - name: Install nvm
-      ansible.builtin.shell: >
-        export NVM_DIR="{{ nvm_dir }}";
-        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v{{ nvm_version }}/install.sh | bash -e
-      args:
-        executable: /bin/bash
-      when: not nvm_stat.stat.exists
-      register: nvm_install
+    - name: Download Node.js {{ node_version }} ({{ node_arch }})
+      ansible.builtin.get_url:
+        url: "{{ node_url }}"
+        dest: "/tmp/{{ node_archive }}"
+        mode: '0644'
+      when: not node_stat.stat.exists
 
-    - name: Install Node.js LTS
-      ansible.builtin.shell: |
-        source {{ nvm_dir }}/nvm.sh
-        nvm install --lts
-        nvm alias default lts/*
-      args:
-        executable: /bin/bash
-      register: nvm_output
-      changed_when: "'already installed' not in nvm_output.stdout"
+    - name: Extract Node.js
+      ansible.builtin.unarchive:
+        src: "/tmp/{{ node_archive }}"
+        dest: "{{ node_install_dir }}"
+        remote_src: true
+      when: not node_stat.stat.exists
 
-    - name: Get installed Node.js version
-      ansible.builtin.shell: |
-        source {{ nvm_dir }}/nvm.sh
-        node --version
-      args:
-        executable: /bin/bash
-      register: node_ver
-      changed_when: false
+    - name: Create bin symlinks
+      ansible.builtin.file:
+        src: "{{ node_extracted_dir }}/bin/{{ item }}"
+        dest: "{{ node_bin_dir }}/{{ item }}"
+        state: link
+      loop:
+        - node
+        - npm
+        - npx
 
-    - name: Add nvm initialization to .bashrc
+    - name: Ensure ~/.local/bin is in PATH in .bashrc
       ansible.builtin.lineinfile:
         path: "{{ lookup('env', 'HOME') }}/.bashrc"
-        line: "{{ item }}"
+        line: 'export PATH="$HOME/.local/bin:$PATH"'
+        regexp: 'export PATH=.*\.local/bin'
         state: present
-      loop:
-        - "export NVM_DIR=\"{{ nvm_dir }}\""
-        - "[ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\"  # This loads nvm"
-        - "[ -s \"$NVM_DIR/bash_completion\" ] && \\. \"$NVM_DIR/bash_completion\"  # This loads nvm bash_completion"
 
-    - name: Add nvm initialization to .zshrc
+    - name: Ensure ~/.local/bin is in PATH in .zshrc
       ansible.builtin.lineinfile:
         path: "{{ lookup('env', 'HOME') }}/.zshrc"
-        line: "{{ item }}"
+        line: 'export PATH="$HOME/.local/bin:$PATH"'
+        regexp: 'export PATH=.*\.local/bin'
         state: present
-      loop:
-        - "export NVM_DIR=\"{{ nvm_dir }}\""
-        - "[ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\"  # This loads nvm"
-        - "[ -s \"$NVM_DIR/bash_completion\" ] && \\. \"$NVM_DIR/bash_completion\"  # This loads nvm bash_completion"
+      failed_when: false
 
-    - name: Print Node.js version
+    - name: Clean up downloaded archive
+      ansible.builtin.file:
+        path: "/tmp/{{ node_archive }}"
+        state: absent
+
+    - name: Show installed version
       ansible.builtin.debug:
-        msg: "Node.js {{ node_ver.stdout }} installed at {{ nvm_dir }}"
+        msg: "Node.js v{{ node_version }} ({{ node_arch }}) installed at {{ node_extracted_dir }}"

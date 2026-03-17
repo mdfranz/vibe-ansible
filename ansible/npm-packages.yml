@@ -1,9 +1,11 @@
 ---
 - name: Manage global NPM packages
   hosts: "{{ target_hosts | default('localhost') }}"
-  gather_facts: no
+  gather_facts: yes
   vars:
     npm_state: present
+    npm_bin: "{{ lookup('env', 'HOME') }}/.local/bin/npm"
+    npm_prefix: "{{ lookup('env', 'HOME') }}/.local"
     npm_packages:
       - "@openai/codex"
       - "@google/gemini-cli"
@@ -16,40 +18,34 @@
         fail_msg: "npm_state must be 'present' or 'absent'."
       tags: [check]
 
-    - name: Check if npm is available for install
-      ansible.builtin.command: npm --version
-      register: npm_check_install
-      changed_when: false
-      failed_when: npm_check_install.rc != 0
-      when: npm_state == 'present'
+    - name: Check if npm is available
+      ansible.builtin.stat:
+        path: "{{ npm_bin }}"
+      register: npm_stat
       tags: [check]
 
-    - name: Check if npm is available for uninstall
-      ansible.builtin.command: npm --version
-      register: npm_check_uninstall
-      changed_when: false
-      failed_when: false
-      when: npm_state == 'absent'
+    - name: Fail if npm not found
+      ansible.builtin.fail:
+        msg: "npm not found at {{ npm_bin }}. Run install nodejs first."
+      when: not npm_stat.stat.exists and npm_state == 'present'
       tags: [check]
 
     - name: Install global NPM packages
-      community.general.npm:
-        name: "{{ item }}"
-        global: true
-        state: latest
+      ansible.builtin.command:
+        cmd: "{{ npm_bin }} install -g --prefix {{ npm_prefix }} {{ item }}"
       loop: "{{ npm_packages }}"
-      when: npm_state == 'present'
+      when: npm_state == 'present' and npm_stat.stat.exists
+      register: npm_install
+      changed_when: "'added' in npm_install.stdout"
       tags: [apply]
 
     - name: Uninstall global NPM packages
-      community.general.npm:
-        name: "{{ item }}"
-        global: true
-        state: absent
+      ansible.builtin.command:
+        cmd: "{{ npm_bin }} uninstall -g --prefix {{ npm_prefix }} {{ item }}"
       loop: "{{ npm_packages }}"
-      when:
-        - npm_state == 'absent'
-        - npm_check_uninstall.rc == 0
+      when: npm_state == 'absent' and npm_stat.stat.exists
+      register: npm_uninstall
+      changed_when: "'removed' in npm_uninstall.stdout"
       tags: [apply]
 
     - name: Print status
@@ -57,13 +53,11 @@
         msg: >-
           {{ 'Installed' if npm_state == 'present' else 'Uninstalled' }}
           global NPM packages: {{ npm_packages | join(', ') }}
-      when: npm_state == 'present' or (npm_state == 'absent' and npm_check_uninstall.rc == 0)
+      when: npm_stat.stat.exists
       tags: [report]
 
-    - name: Print uninstall skip message
+    - name: Print skip message
       ansible.builtin.debug:
-        msg: "Skipped NPM uninstall as npm command was not found."
-      when:
-        - npm_state == 'absent'
-        - npm_check_uninstall.rc != 0
+        msg: "Skipped: npm not found at {{ npm_bin }}."
+      when: not npm_stat.stat.exists
       tags: [report]

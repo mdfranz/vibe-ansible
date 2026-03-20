@@ -18,6 +18,7 @@
           - wget
           - git
           - mosh
+          - build-essential
         state: present
       tags: [standard_tools]
 

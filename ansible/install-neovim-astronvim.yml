@@ -1,14 +1,15 @@
 ---
 - name: Install Neovim and AstroNvim
   hosts: "{{ target_hosts | default('localhost') }}"
-  gather_facts: no
+  gather_facts: yes
   vars:
-    nvim_tarball_url: "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz"
+    nvim_arch: "{{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'x86_64' }}"
+    nvim_tarball_url: "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-{{ nvim_arch }}.tar.gz"
     home_dir: "{{ lookup('env', 'HOME') }}"
     local_dir: "{{ home_dir }}/.local"
     local_bin: "{{ home_dir }}/.local/bin"
     nvim_extract_dir: "{{ home_dir }}/.local"
-    nvim_bin_src: "{{ home_dir }}/.local/nvim-linux-x86_64/bin/nvim"
+    nvim_bin_src: "{{ home_dir }}/.local/nvim-linux-{{ nvim_arch }}/bin/nvim"
     nvim_bin_dest: "{{ home_dir }}/.local/bin/nvim"
     config_dir: "{{ home_dir }}/.config/nvim"
     share_dir: "{{ home_dir }}/.local/share/nvim"

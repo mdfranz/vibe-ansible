@@ -3,7 +3,7 @@
   hosts: "{{ target_hosts | default('localhost') }}"
   gather_facts: yes
   vars:
-    node_version: "24.14.0"
+    node_version: "24.15.0"
     node_arch: "{{ 'linux-arm64' if ansible_facts['architecture'] == 'aarch64' else 'linux-x64' }}"
     node_install_dir: "{{ lookup('env', 'HOME') }}/.local/lib/nodejs"
     node_bin_dir: "{{ lookup('env', 'HOME') }}/.local/bin"
